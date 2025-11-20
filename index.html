@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>동천교회 성경필사 프로젝트</title>
+    <style>
+        :root { --primary: #4A90E2; --success: #2ECC71; --warning: #F5A623; --bg: #f4f6f8; }
+        body { font-family: 'Pretendard', sans-serif; background: var(--bg); margin: 0; padding: 20px; }
+        
+        /* Layout */
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; }
+        
+        /* Filter/Tabs */
+        .book-select { width: 100%; padding: 10px; margin-bottom: 20px; font-size: 16px; border-radius: 8px; border: 1px solid #ddd; }
+        
+        /* Grid System */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 10px; }
+        .chapter-box {
+            padding: 15px 0; text-align: center; background: #eee; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s;
+        }
+        
+        /* Status Colors */
+        .status-Available { background: white; border: 2px solid #ddd; color: #333; }
+        .status-Available:hover { border-color: var(--success); color: var(--success); }
+        
+        .status-Reserved { background: var(--warning); color: white; border: 2px solid var(--warning); cursor: default; }
+        .status-Done { background: var(--primary); color: white; border: 2px solid var(--primary); cursor: default; }
+        
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 350px; text-align: center; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; }
+        button { width: 100%; padding: 12px; background: var(--success); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
+        button.close { background: #aaa; margin-top: 10px; }
+
+        /* Loading */
+        #loading { text-align: center; padding: 20px; font-size: 18px; color: #666; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📖 성경 필사 신청</h1>
+    <p style="text-align: center; color: #666;">원하는 장을 선택하여 신청해주세요.</p>
+    
+    <select id="bookSelect" class="book-select" onchange="renderChapters()">
+        <option value="">성경을 불러오는 중...</option>
+    </select>
+
+    <div id="loading">데이터를 불러오는 중입니다...</div>
+    <div id="chapterGrid" class="grid"></div>
+</div>
+
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalTitle">신청하기</h3>
+        <p id="modalDesc">정보를 입력해주세요.</p>
+        <input type="text" id="userName" placeholder="이름 (예: 김동천)">
+        <input type="tel" id="userContact" placeholder="연락처 뒷자리 (예: 1234)">
+        <button onclick="submitApplication()">신청 완료</button>
+        <button class="close" onclick="closeModal()">닫기</button>
+    </div>
+</div>
+
+<script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbxDeDOzkKpYc9u2x8JEgNb6SxHPcWN0zJ3UlRUWCDYwhJf50c_pTYLAS-yNCKlf73O5rQ/exec"; 
+
+    let allData = [];
+    let selectedBook = "";
+    let selectedChapter = 0;
+
+    // 1. 데이터 불러오기
+    async function loadData() {
+        try {
+            const res = await fetch(API_URL);
+            const data = await res.json();
+            allData = data;
+            
+            initBookSelect();
+            document.getElementById('loading').style.display = 'none';
+        } catch (e) {
+            alert("데이터 로드 실패: " + e);
+        }
+    }
+
+    // 2. 성경 목록(Select) 만들기
+    function initBookSelect() {
+        const books = [...new Set(allData.map(item => item.book))]; // 중복 제거
+        const select = document.getElementById('bookSelect');
+        select.innerHTML = "";
+        
+        books.forEach((book, index) => {
+            let option = document.createElement("option");
+            option.value = book;
+            option.text = book;
+            select.appendChild(option);
+        });
+        
+        renderChapters(); // 첫번째 성경 보여주기
+    }
+
+    // 3. 챕터 그리드 그리기
+    function renderChapters() {
+        const bookName = document.getElementById('bookSelect').value;
+        const container = document.getElementById('chapterGrid');
+        container.innerHTML = "";
+        
+        const chapters = allData.filter(item => item.book === bookName);
+
+        chapters.forEach(item => {
+            let div = document.createElement("div");
+            div.className = `chapter-box status-${item.status}`;
+            div.innerText = item.chapter;
+
+            if (item.status === 'Available') {
+                div.onclick = () => openModal(item.book, item.chapter);
+            } else {
+                // Reserved(집필중) 또는 Done(완료) 상태일 때 모두 이름 표시
+                let msg = item.status === 'Done' ? '필사 완료' : '집필 중';
+                div.title = `${item.applicant}님이 ${msg}`;
+            }
+            container.appendChild(div);
+        });
+    }
+
+    // 4. 모달 열기/닫기
+    function openModal(book, chapter) {
+        selectedBook = book;
+        selectedChapter = chapter;
+        document.getElementById('modalTitle').innerText = `${book} ${chapter}장 신청`;
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('modal').style.display = 'none';
+        document.getElementById('userName').value = "";
+        document.getElementById('userContact').value = "";
+    }
+
+    // 5. 신청 데이터 전송 (POST)
+    function submitApplication() {
+        const name = document.getElementById('userName').value;
+        const contact = document.getElementById('userContact').value;
+        
+        if(!name || !contact) return alert("이름과 연락처를 모두 입력해주세요.");
+
+        const payload = {
+            book: selectedBook,
+            chapter: selectedChapter,
+            name: name,
+            contact: contact
+        };
+
+        // 버튼 비활성화 (중복 클릭 방지)
+        const btn = document.querySelector('#modal button');
+        btn.innerText = "처리 중...";
+        btn.disabled = true;
+
+        fetch(API_URL, {
+            method: 'POST',
+            mode: 'no-cors', // GAS Web App 특성상 no-cors 사용 (응답 내용 직접 확인 불가하나 요청은 감)
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(() => {
+            alert("신청되었습니다!");
+            closeModal();
+            location.reload(); // 새로고침하여 상태 업데이트
+        }).catch(err => {
+            alert("오류가 발생했습니다.");
+            btn.innerText = "신청 완료";
+            btn.disabled = false;
+        });
+    }
+
+    // 시작
+    loadData();
+</script>
+
+</body>
+</html>

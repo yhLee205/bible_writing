@@ -58,9 +58,20 @@
         <h3 id="modalTitle">신청하기</h3>
         <p id="modalDesc">정보를 입력해주세요.</p>
         <input type="text" id="userName" placeholder="이름 (예: 김동천)">
-        <input type="tel" id="userContact" placeholder="연락처 뒷자리 (예: 1234)">
+        <input type="tel" id="userContact" placeholder="마감일 (예: 2025-12-31)">
+        <!--변수명은 userContact인 이유 : 개발 초기에는 연락처 뒷자리로 동명이인을 구별하려 했으나, 이후 성경 필사 마감 일자를 받는 것으로 변경됨.-->
         <button onclick="submitApplication()">신청 완료</button>
         <button class="close" onclick="closeModal()">닫기</button>
+    </div>
+</div>
+
+<div id="infoModal" class="modal">
+    <div class="modal-content">
+        <h3 id="infoTitle">성경 정보</h3>
+        <h2 id="infoStatus" style="margin: 10px 0;"></h2>
+        <p id="infoApplicant" style="font-size: 1.1em;"></p>
+        <p id="infoDate" style="color: #666; margin-bottom: 20px;"></p>
+        <button class="close" onclick="closeInfoModal()">닫기</button>
     </div>
 </div>
 
@@ -114,18 +125,21 @@
             div.className = `chapter-box status-${item.status}`;
             div.innerText = item.chapter;
 
-            if (item.status === 'Available') {
-                div.onclick = () => openModal(item.book, item.chapter);
-            } else {
-                // Reserved(집필중) 또는 Done(완료) 상태일 때 모두 이름 표시
-                let msg = item.status === 'Done' ? '필사 완료' : '집필 중';
-                div.title = `${item.applicant}님이 ${msg}`;
-            }
+            // 상태 상관없이 무조건 클릭 이벤트 연결
+            div.onclick = () => {
+                if (item.status === 'Available') {
+                    // 신청 가능 -> 신청 팝업 열기
+                    openModal(item.book, item.chapter);
+                } else {
+                    // 이미 선점됨 -> 정보 팝업 열기
+                    openInfoModal(item);
+                }
+            };
             container.appendChild(div);
         });
     }
 
-    // 4. 모달 열기/닫기
+    // 4-1. 신청 팝업 열기/닫기
     function openModal(book, chapter) {
         selectedBook = book;
         selectedChapter = chapter;
@@ -139,12 +153,39 @@
         document.getElementById('userContact').value = "";
     }
 
+    // 4-2. [추가] 정보 확인 팝업 열기/닫기 (★새로 추가된 함수)
+    function openInfoModal(item) {
+        document.getElementById('infoTitle').innerText = `${item.book} ${item.chapter}장`;
+        
+        const statusTextElement = document.getElementById('infoStatus');
+        const applicantElement = document.getElementById('infoApplicant');
+        const dateElement = document.getElementById('infoDate');
+
+        if (item.status === 'Done') {
+            statusTextElement.innerText = "🎉 필사 완료";
+            statusTextElement.style.color = "#4A90E2"; // 파란색
+        } else {
+            statusTextElement.innerText = "✍️ 집필 중";
+            statusTextElement.style.color = "#F5A623"; // 주황색
+        }
+
+        applicantElement.innerText = `신청자: ${item.applicant}`;
+        // contact 필드에 마감일이 들어있으므로 표시
+        dateElement.innerText = item.contact ? `마감 목표일: ${item.contact}` : "";
+
+        document.getElementById('infoModal').style.display = 'flex';
+    }
+
+    function closeInfoModal() {
+        document.getElementById('infoModal').style.display = 'none';
+    }
+
     // 5. 신청 데이터 전송 (POST)
     function submitApplication() {
         const name = document.getElementById('userName').value;
         const contact = document.getElementById('userContact').value;
         
-        if(!name || !contact) return alert("이름과 연락처를 모두 입력해주세요.");
+        if(!name || !contact) return alert("이름과 마감 일자를 모두 입력해주세요.");
 
         const payload = {
             book: selectedBook,

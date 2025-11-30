@@ -72,7 +72,8 @@
         <h3 id="modalTitle">신청하기</h3>
         <p id="modalDesc">정보를 입력해주세요.</p>
         <input type="text" id="userName" placeholder="이름 (예: 김동천)">
-        <input type="tel" id="userContact" placeholder="마감일 (예: 2025-12-31)">
+        <div style="text-align: left; width: 90%; margin: 0 auto; font-size: 14px; color: #666;">마감 목표일</div>
+<input type="date" id="userContact">
         <!--변수명은 userContact인 이유 : 개발 초기에는 연락처 뒷자리로 동명이인을 구별하려 했으나, 이후 성경 필사 마감 일자를 받는 것으로 변경됨.-->
         <button onclick="submitApplication()">신청 완료</button>
         <button class="close" onclick="closeModal()">닫기</button>
@@ -159,6 +160,9 @@
         selectedChapter = chapter;
         document.getElementById('modalTitle').innerText = `${book} ${chapter}장 신청`;
         document.getElementById('modal').style.display = 'flex';
+        // [추가됨] 달력에 '오늘 날짜'를 기본값으로 세팅 (선택 편의성)
+        // 만약 빈칸으로 두고 싶으면 이 줄을 지우세요.
+        document.getElementById('userContact').valueAsDate = new Date();
     }
 
     function closeModal() {
@@ -166,7 +170,7 @@
         document.getElementById('userName').value = "";
         document.getElementById('userContact').value = "";
     }
-
+""
     // 4-2. [추가] 정보 확인 팝업 열기/닫기 (★새로 추가된 함수)
     function openInfoModal(item) {
         document.getElementById('infoTitle').innerText = `${item.book} ${item.chapter}장`;
@@ -185,8 +189,11 @@
 
         applicantElement.innerText = `신청자: ${item.applicant}`;
         // contact 필드에 마감일이 들어있으므로 표시
-        dateElement.innerText = item.contact ? `마감 목표일: ${item.contact}` : "";
-
+        // 날짜 형식 정리 (혹시 2025-12-31T00:00:00 등으로 들어올 경우 대비하여 앞 10자리만 자름)
+        let displayDate = item.contact;
+        if(displayDate && displayDate.length > 10) displayDate = displayDate.substring(0, 10);
+        
+        dateElement.innerText = displayDate ? `마감 목표일: ${displayDate}` : "";
         document.getElementById('infoModal').style.display = 'flex';
     }
 

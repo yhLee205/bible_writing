@@ -43,8 +43,22 @@
 
 <div class="container">
     <h1>📖 성경 필사 신청</h1>
-    <p style="text-align: center; color: #666;">원하는 장을 선택하여 신청해주세요.</p>
+    <div style="text-align: center; color: #666;">
+  원하는 장을 선택하여 신청해주세요.
+  
+  <br><br>
+
+  <details>
+    <summary style="cursor: pointer;">필사 노트 작성 방법 보기 ▾</summary>
     
+    <p style="margin-top: 10px; line-height: 1.6;">
+      성경 필사 노트 수령 후,<br>
+      <b>Chapter</b>에는 성경 장을,<br>
+      <b>Date</b>에는 필사 완료 날짜를,<br>
+      <b>우측 하단</b>에는 필사한 분의 성함을 기입해주세요.
+    </p>
+  </details>
+</div>
     <select id="bookSelect" class="book-select" onchange="renderChapters()">
         <option value="">성경을 불러오는 중...</option>
     </select>
